@@ -137,6 +137,10 @@ const strings = {
       lang: "zh-cn",
       website: "https://cn.pattern.monster",
     },
+    {
+      lang: "nl",
+      website: "https://nl.pattern.monster",
+    },
   ],
 };
 
