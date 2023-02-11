@@ -369,7 +369,7 @@ dayjs.extend(relativeTime);
 
 <div bind:clientWidth={w} class="patternsList">
   <div class="container flex mx-auto pb-20 pt-2">
-    <div class="alert">
+    <!-- <div class="alert">
       <div class="innerShop">
     <span class="text-sm uppercase font-semibold tracking-wider">Shop Product Range</span>
     <div class="shop-buttons">
@@ -379,7 +379,8 @@ dayjs.extend(relativeTime);
     <a class="shop-button" href="pattern-stationery-office">{strings["stationery-office"]}</a>
     <a class="shop-button" href="pattern-stickers-skins">{strings["stickers-skins"]}</a>
     <a class="shop-button" href="pattern-wall-art">{strings["wall-art"]}</a>
-  </div></div></div></div>
+  </div></div></div> -->
+</div>
 
   <h1>{@html strings.heading}</h1>
   <div class="stats">
