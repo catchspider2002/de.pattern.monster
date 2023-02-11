@@ -714,7 +714,7 @@ dayjs.extend(relativeTime);
       grid-template-columns: auto;
     }
   }
-  .subscribe-waitlist {
+  /* .subscribe-waitlist {
     padding: 0 0.5rem;
     background-color: var(--secondary-color);
     border-radius: var(--border-radius);
@@ -735,5 +735,5 @@ dayjs.extend(relativeTime);
     .subscribe-waitlist span {
       padding: 1em 8px 0.75em;
     }
-  }
+  } */
 </style>
