@@ -65,676 +65,603 @@ import "dayjs/locale/de";
 dayjs.locale("de");
 dayjs.extend(relativeTime);
 
-// dayjs().locale("de").format();
+let searchBar;
+let w;
+$: placeholderSearch =
+  w > 640
+    ? strings.searchPattern + " (" + strings.pressFocus + ")"
+    : strings.searchPattern;
 
-  let searchBar;
-  let w;
-  $: placeholderSearch = w > 640 ? strings.searchPattern + " (" + strings.pressFocus + ")" : strings.searchPattern;
+onMount(async () => {
+  searchBar = document.getElementById("search");
+});
 
-  let homeTimeout;
-  // let homeShow = false;
+afterUpdate(() => {
+  if (count === 0) getPosts();
 
-  onMount(async () => {
-    // console.log("onMount")
-    searchBar = document.getElementById("search");
-    // await tick();
-    // newPosts = posts;
-    if ($langStore !== "en") {
-      console.log("homeTimeout");
-      homeTimeout = setTimeout(() => {
-        // homeShow = true;
+  count++;
+});
 
-        let firstName = document.querySelector('[aria-label="First Name"]');
-        firstName.setAttribute("placeholder", strings.firstName);
+function getPosts() {
+  return fetch(`index.json`)
+    .then((r) => r.json())
+    .then((testposts) => {
+      posts = testposts;
+      newPosts = posts;
+    });
+}
 
-        let email = document.querySelector('[aria-label="Email Address"]');
-        email.setAttribute("placeholder", strings.email2);
+let mode = { text: strings.allModes, value: "all" };
+let colorsCount = { text: strings.allColors, value: 0 };
 
-        let sendButton = document.querySelector(".subscribe-waitlist button > span");
-        sendButton.innerHTML = strings.waitlist;
-      }, 400);
-    }
+let filterOptions = [
+  { text: strings.allModes, value: "all" },
+  { text: strings.stroke, value: "stroke" },
+  { text: strings.fill, value: "fill" },
+];
+
+let colorOptions = [
+  { text: strings.allColors, value: 0 },
+  { text: "2 " + strings.colors, value: 2 },
+  { text: "3 " + strings.colors, value: 3 },
+  { text: "4 " + strings.colors, value: 4 },
+  { text: "5 " + strings.colors, value: 5 },
+];
+
+let searchText = "";
+
+let filterData = () => {
+  newPosts = posts
+    .filter((pattern) =>
+      mode.value === "fill"
+        ? pattern.mode === "fill"
+        : mode.value === "stroke"
+        ? pattern.mode === "stroke" || pattern.mode === "stroke-join"
+        : pattern
+    )
+    .filter((pattern) =>
+      colorsCount.value > 1 ? pattern.colors === colorsCount.value : pattern
+    )
+    .filter((pattern) =>
+      searchText.length > 0
+        ? pattern.tags.find(function (tag) {
+            return tag.includes(searchText.toLowerCase());
+          })
+        : pattern
+    );
+};
+
+function sortAlphabetical() {
+  newPosts = newPosts.sort(function (x, y) {
+    let a = x.title.toUpperCase(),
+      b = y.title.toUpperCase();
+    return a == b ? 0 : a > b ? 1 : -1;
   });
+}
 
-  onDestroy(() => {
-    if ($langStore !== "en") clearTimeout(homeTimeout);
+function sortAlphabeticalReverse() {
+  newPosts = newPosts.sort(function (x, y) {
+    let a = x.title.toUpperCase(),
+      b = y.title.toUpperCase();
+    return a == b ? 0 : a > b ? -1 : 1;
   });
+}
 
-  afterUpdate(() => {
-    // console.log("afterUpdate")
-    if (count === 0) {
-      getPosts();
-      // updateCount()
-    }
-    count++;
+function sortLatest() {
+  sortAlphabetical();
+  newPosts = newPosts.sort(function (x, y) {
+    let a = new Date(x.creationDate),
+      b = new Date(y.creationDate);
+    return a == b ? 0 : a > b ? -1 : 1;
   });
+}
 
-  // function updateCount() {
-  //   const counter = document.getElementById('patternsCount');
-  //   const speed = 0.5; // The lower the slower
+function sortOldest() {
+  sortAlphabetical();
+  newPosts = newPosts.sort(function (x, y) {
+    let a = new Date(x.creationDate),
+      b = new Date(y.creationDate);
+    return a == b ? 0 : a > b ? 1 : -1;
+  });
+}
 
-  //       const target = counter.getAttribute('data-target');
-  //       const count = counter.innerText;
+let keyCode;
 
-  //       // Lower inc to slow and higher to slow
-  //       const inc = target / speed;
+function handleKeydown(event) {
+  keyCode = event.keyCode;
+  if (keyCode === 191) {
+    event.preventDefault();
+    searchBar.focus();
+  }
+}
 
-  //       console.log(target);
-  //       console.log(inc);
-  //       console.log(count);
+let page = "index";
+let { title, url, keywords, desc, image, versions } =
+  Constants.pageDetails(page);
 
-  //       // Check if target is reached
-  //       if (count < target) {
-  //           // Add inc to count and output in counter
-  //           counter.innerText = parseInt(count) + parseInt( inc);
-  //           // Call function every ms
-  //           setTimeout(updateCount, 1);
-  //       } else {
-  //           counter.innerText = target;
-  //       }
-  //   };
+let lightColors = [
+  "hsla(0,0%,100%,1)",
+  "hsla(258.5,59.4%,59.4%,1)",
+  "hsla(339.6,82.2%,51.6%,1)",
+  "hsla(198.7,97.6%,48.4%,1)",
+  "hsla(47,80.9%,61%,1)",
+];
+let darkColors = [
+  "hsla(240,6.7%,17.6%,1)",
+  "hsla(47,80.9%,61%,1)",
+  "hsla(4.1,89.6%,58.4%,1)",
+  "hsla(186.8,100%,41.6%,1)",
+  "hsla(258.5,59.4%,59.4%,1)",
+];
 
-  function getPosts() {
-    return fetch(`index.json`)
-      .then((r) => r.json())
-      .then((testposts) => {
-        posts = testposts;
-        newPosts = posts;
-      });
+$: colors = $themeStore === "light" ? lightColors : darkColors;
+
+$: svgPattern = (width, height, path, mode) => {
+  let strokeGroup = "";
+
+  for (let i = 0; i < path.split("~").length; i++) {
+    let strokeFill =
+      "stroke-width='1' stroke='" + colors[i + 1] + "' fill='none'";
+    if (mode === "fill")
+      strokeFill = "stroke='none' fill='" + colors[i + 1] + "'";
+
+    strokeGroup += path.split("~")[i].replace("/>", " " + strokeFill + "/>");
   }
 
-  let mode = { text: strings.allModes, value: "all" };
-  let colorsCount = { text: strings.allColors, value: 0 };
+  let patternNew =
+    "<svg width='100%' height='100%' xmlns='http://www.w3.org/2000/svg'><defs>" +
+    "<pattern id='a' patternUnits='userSpaceOnUse' width='" +
+    width +
+    "' height='" +
+    height +
+    "'><rect x='0' y='0' width='" +
+    width +
+    "' height='" +
+    height +
+    "' fill='" +
+    colors[0] +
+    "'/>" +
+    strokeGroup +
+    "</pattern></defs><rect width='100%' height='100%' fill='url(#a)'/></svg>";
+  return (
+    'background-image: url("data:image/svg+xml,' +
+    patternNew.replace("#", "%23") +
+    '")'
+  );
+};
 
-  let filterOptions = [
-    { text: strings.allModes, value: "all" },
-    { text: strings.stroke, value: "stroke" },
-    { text: strings.fill, value: "fill" },
-  ];
+// const api = "https://hn.algolia.com/api/v1/search_by_date?tags=story";
 
-  let colorOptions = [
-    { text: strings.allColors, value: 0 },
-    { text: "2 " + strings.colors, value: 2 },
-    { text: "3 " + strings.colors, value: 3 },
-    { text: "4 " + strings.colors, value: 4 },
-    { text: "5 " + strings.colors, value: 5 },
-  ];
+// let page = 1;
+// // let list = [];
+// let newsType = "story";
+// let infiniteId = 1;
 
-  let searchText;
+// function infiniteHandler({ detail: { loaded, complete } }) {
+// 	fetch(`${api}&page=${page}&tags=${newsType}`)
+// 			.then(response => response.json())
+// 			.then(data => {
+// 				if (data.hits.length) {
+// 					page += 1;
+// 					list = [...list, ...data.hits];
+// 					loaded();
+// 				} else {
+// 					complete();
+// 				}
+// 			});
+// }
 
-  function filterChanged() {
-    // console.log("filterChanged: " + mode.value)
-    if (mode.value === "fill") newPosts = posts.filter((pattern) => pattern.mode === "fill");
-    else if (mode.value === "stroke") newPosts = posts.filter((pattern) => pattern.mode === "stroke" || pattern.mode === "stroke-join");
-    else newPosts = posts;
-  }
+// function infiniteHandler({ detail: { loaded, complete } }) {
+//   fetch(`index.json`)
+//     .then((r) => r.json())
+//     .then((data) => {
+//       if (data.length) {
+//         page += 1;
+//         newPosts = [...newPosts, ...data];
+//         loaded();
+//       } else {
+//         complete();
+//       }
+//     });
+// }
 
-  function colorsChanged() {
-    // console.log("colorsChanged")
-    if (colorsCount.value > 1) newPosts = posts.filter((pattern) => pattern.colors === colorsCount.value);
-    else newPosts = posts;
-  }
+// function changeType() {
+//   page = 1;
+//   list = [];
+//   infiniteId += 50;
+// }
 
-  function searchChanged() {
-    // console.log("searchChanged")
-    if (searchText.length > 0) {
-      newPosts = posts.filter((pattern) =>
-        pattern.tags.find(function (tag) {
-          return tag.includes(searchText.toLowerCase());
-        })
-      );
-    } else newPosts = posts;
-  }
-
-  function sortAlphabetical() {
-    newPosts = newPosts.sort(function (x, y) {
-      let a = x.title.toUpperCase(),
-        b = y.title.toUpperCase();
-      return a == b ? 0 : a > b ? 1 : -1;
-    });
-  }
-
-  function sortAlphabeticalReverse() {
-    newPosts = newPosts.sort(function (x, y) {
-      let a = x.title.toUpperCase(),
-        b = y.title.toUpperCase();
-      return a == b ? 0 : a > b ? -1 : 1;
-    });
-  }
-
-  function sortLatest() {
-    sortAlphabetical();
-    newPosts = newPosts.sort(function (x, y) {
-      let a = new Date(x.creationDate),
-        b = new Date(y.creationDate);
-      return a == b ? 0 : a > b ? -1 : 1;
-    });
-  }
-
-  function sortOldest() {
-    sortAlphabetical();
-    newPosts = newPosts.sort(function (x, y) {
-      let a = new Date(x.creationDate),
-        b = new Date(y.creationDate);
-      return a == b ? 0 : a > b ? 1 : -1;
-    });
-  }
-
-  let keyCode;
-
-  function handleKeydown(event) {
-    keyCode = event.keyCode;
-    if (keyCode === 191) {
-      event.preventDefault();
-      searchBar.focus();
-    }
-  }
-
-  let page = "index";
-  let { title, url, keywords, desc, image, versions } = Constants.pageDetails(page);
-
-  let lightColors = [
-    "hsla(0,0%,100%,1)",
-    "hsla(258.5,59.4%,59.4%,1)",
-    "hsla(339.6,82.2%,51.6%,1)",
-    "hsla(198.7,97.6%,48.4%,1)",
-    "hsla(47,80.9%,61%,1)",
-  ];
-  let darkColors = [
-    "hsla(240,6.7%,17.6%,1)",
-    "hsla(47,80.9%,61%,1)",
-    "hsla(4.1,89.6%,58.4%,1)",
-    "hsla(186.8,100%,41.6%,1)",
-    "hsla(258.5,59.4%,59.4%,1)",
-  ];
-
-  $: colors = $themeStore === "light" ? lightColors : darkColors;
-
-  $: svgPattern = (width, height, path, mode) => {
-    let strokeGroup = "";
-
-    for (let i = 0; i < path.split("~").length; i++) {
-      let strokeFill = "stroke-width='1' stroke='" + colors[i + 1] + "' fill='none'";
-      if (mode === "fill") strokeFill = "stroke='none' fill='" + colors[i + 1] + "'";
-
-      strokeGroup += path.split("~")[i].replace("/>", " " + strokeFill + "/>");
-    }
-
-    let patternNew =
-      "<svg width='100%' height='100%' xmlns='http://www.w3.org/2000/svg'><defs>" +
-      "<pattern id='a' patternUnits='userSpaceOnUse' width='" +
-      width +
-      "' height='" +
-      height +
-      "'><rect x='0' y='0' width='" +
-      width +
-      "' height='" +
-      height +
-      "' fill='" +
-      colors[0] +
-      "'/>" +
-      strokeGroup +
-      "</pattern></defs><rect width='100%' height='100%' fill='url(#a)'/></svg>";
-    return 'background-image: url("data:image/svg+xml,' + patternNew.replace("#", "%23") + '")';
-  };
-
-  // const api = "https://hn.algolia.com/api/v1/search_by_date?tags=story";
-
-  // let page = 1;
-  // // let list = [];
-  // let newsType = "story";
-  // let infiniteId = 1;
-
-  // function infiniteHandler({ detail: { loaded, complete } }) {
-  // 	fetch(`${api}&page=${page}&tags=${newsType}`)
-  // 			.then(response => response.json())
-  // 			.then(data => {
-  // 				if (data.hits.length) {
-  // 					page += 1;
-  // 					list = [...list, ...data.hits];
-  // 					loaded();
-  // 				} else {
-  // 					complete();
-  // 				}
-  // 			});
-  // }
-
-  // function infiniteHandler({ detail: { loaded, complete } }) {
-  //   fetch(`index.json`)
-  //     .then((r) => r.json())
-  //     .then((data) => {
-  //       if (data.length) {
-  //         page += 1;
-  //         newPosts = [...newPosts, ...data];
-  //         loaded();
-  //       } else {
-  //         complete();
-  //       }
-  //     });
-  // }
-
-  // function changeType() {
-  //   page = 1;
-  //   list = [];
-  //   infiniteId += 50;
-  // }
-
-  let stats = [
-    {
-      path: Values.icons.trending,
-      text: patternsCount + " " + strings.patterns,
-    },
-    {
-      path: Values.icons.download,
-      text: "CSS, SVG, PNG",
-    },
-    {
-      path: Values.icons.license,
-      text: strings.license,
-    },
-    {
-      path: Values.icons.release,
-      text: strings.free,
-    },
-  ];
+let stats = [
+  {
+    path: Values.icons.trending,
+    text: patternsCount + " " + strings.patterns,
+  },
+  {
+    path: Values.icons.download,
+    text: "CSS, SVG, PNG",
+  },
+  {
+    path: Values.icons.license,
+    text: strings.license,
+  },
+  {
+    path: Values.icons.release,
+    text: strings.free,
+  },
+];
 </script>
 
 <svelte:head>
-  <title>{title}</title>
-  <link rel="canonical" href={url} />
-  {#if versions}
-    {#each versions as version}
-      <link rel="alternate" href={version.website} hreflang={version.lang} />
-    {/each}
-  {/if}
-  <meta name="description" content={desc} />
-  <meta name="keywords" content={keywords} />
+<title>{title}</title>
+<link rel="canonical" href={url} />
+{#if versions}
+  {#each versions as version}
+    <link rel="alternate" href={version.website} hreflang={version.lang} />
+  {/each}
+{/if}
+<meta name="description" content={desc} />
+<meta name="keywords" content={keywords} />
 
-  <!-- Open Graph / Facebook -->
-  <meta property="og:url" content={url} />
-  <meta property="og:title" content={title} />
-  <meta property="og:description" content={desc} />
-  <meta property="og:image" content={image} />
+<!-- Open Graph / Facebook -->
+<meta property="og:url" content={url} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={desc} />
+<meta property="og:image" content={image} />
 
-  <!-- Twitter -->
-  <meta name="twitter:url" content={url} />
-  <meta name="twitter:title" content={title} />
-  <meta name="twitter:description" content={desc} />
-  <meta name="twitter:image" content={image} />
-  <meta name="twitter:image:src" content={image} />
-  <meta name="twitter:image:alt" content={title} />
+<!-- Twitter -->
+<meta name="twitter:url" content={url} />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={desc} />
+<meta name="twitter:image" content={image} />
+<meta name="twitter:image:src" content={image} />
+<meta name="twitter:image:alt" content={title} />
 </svelte:head>
 
 <svelte:window on:keydown={handleKeydown} />
 
 <div bind:clientWidth={w} class="patternsList">
-  <div class="container flex mx-auto pb-20 pt-2">
-    <!-- <div class="alert">
-      <div class="innerShop">
-    <span class="text-sm uppercase font-semibold tracking-wider">Shop Product Range</span>
-    <div class="shop-buttons">
-    <a class="shop-button" href="pattern-accessories">{strings["accessories"]}</a>
-    <a class="shop-button" href="pattern-home-living">{strings["home-living"]}</a>
-    <a class="shop-button" href="pattern-phone-cases">{strings["phone-cases"]}</a>
-    <a class="shop-button" href="pattern-stationery-office">{strings["stationery-office"]}</a>
-    <a class="shop-button" href="pattern-stickers-skins">{strings["stickers-skins"]}</a>
-    <a class="shop-button" href="pattern-wall-art">{strings["wall-art"]}</a>
-  </div></div></div> -->
+<div class="container flex mx-auto pb-2 pt-12">
+  <div class="alert" />
 </div>
 
-  <h1>{@html strings.heading}</h1>
-  <div class="stats">
-    {#each stats as stat}
-      <div class="grid grid-flow-col gap-2 gray-text place-content-start">
-        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d={stat.path} /></svg>
-        {stat.text}
-      </div>
-    {/each}
-  </div>
-  <p class="container mx-auto">{strings.description} {strings.description2} {strings.description3}</p>
+<h1>{@html strings.heading}</h1>
+<div class="stats">
+  {#each stats as stat}
+    <div class="grid grid-flow-col gap-2 gray-text place-content-start">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+        ><path d={stat.path} /></svg
+      >
+      {stat.text}
+    </div>
+  {/each}
+</div>
+<p class="container mx-auto">
+  {strings.description}
+  {strings.description2}
+  {strings.description3}
+</p>
 
-  <!-- <div class="subscribe-waitlist grid">
-    <span>{strings.apiAccess}</span>
-    <script async data-uid="f146eb0e2c" src="https://crafty-artist-9316.ck.page/f146eb0e2c/index.js"></script>
-  </div> -->
-
-  <div class="outerGrid">
-    <div class="searchBox">
-      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <path d={Values.icons.search} />
-      </svg>
-      <input
-        id="search"
-        class="search"
-        type="text"
-        aria-label={strings.searchPattern}
-        bind:value={searchText}
-        placeholder={placeholderSearch}
-        on:input={searchChanged}
-      />
-    </div>
-    <div class="filterGrid grid grid-flow-col">
-      {strings.filter}
-      <AutoComplete
-        inputId="filterMode"
-        placeholder={strings.filterMode}
-        items={filterOptions}
-        bind:selectedItem={mode}
-        labelFieldName="text"
-        ariaLabel={strings.filterMode}
-        onChange={filterChanged}
-      />
-      <AutoComplete
-        inputId="filterColor"
-        placeholder={strings.filterColors}
-        items={colorOptions}
-        bind:selectedItem={colorsCount}
-        labelFieldName="text"
-        ariaLabel={strings.filterColors}
-        onChange={colorsChanged}
-      />
-    </div>
-    <div class="sortGrid grid grid-flow-col">
-      <span>{strings.sort}</span>
-      <div class="sortInner flex items-center justify-self-end">
-        <button on:click={sortLatest}>{strings.latest}</button>
-        <button on:click={sortOldest}>{strings.oldest}</button>
-        <button on:click={sortAlphabetical}>A-Z</button>
-        <button on:click={sortAlphabeticalReverse}>Z-A</button>
-      </div>
+<div class="outerGrid">
+  <div class="searchBox">
+    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d={Values.icons.search} />
+    </svg>
+    <input
+      id="search"
+      class="search"
+      type="text"
+      aria-label={strings.searchPattern}
+      bind:value={searchText}
+      placeholder={placeholderSearch}
+      on:input={filterData}
+    />
+  </div>
+  <div class="filterGrid grid grid-flow-col">
+    {strings.filter}
+    <AutoComplete
+      inputId="filterMode"
+      placeholder={strings.filterMode}
+      items={filterOptions}
+      bind:selectedItem={mode}
+      labelFieldName="text"
+      ariaLabel={strings.filterMode}
+      onChange={filterData}
+    />
+    <AutoComplete
+      inputId="filterColor"
+      placeholder={strings.filterColors}
+      items={colorOptions}
+      bind:selectedItem={colorsCount}
+      labelFieldName="text"
+      ariaLabel={strings.filterColors}
+      onChange={filterData}
+    />
+  </div>
+  <div class="sortGrid grid grid-flow-col">
+    <span>{strings.sort}</span>
+    <div class="sortInner flex items-center justify-self-end">
+      <button on:click={sortLatest}>{strings.latest}</button>
+      <button on:click={sortOldest}>{strings.oldest}</button>
+      <button on:click={sortAlphabetical}>A-Z</button>
+      <button on:click={sortAlphabeticalReverse}>Z-A</button>
     </div>
   </div>
-  <div class="samples">
-    {#each newPosts as post}
-      <div class="outerPattern">
-        <a rel="prefetch" href="{post.slug}/" class="pattern" style={svgPattern(post.width, post.height, post.path, post.mode)}>
-          <span>{post.title}</span>
-        </a>
-        <div class="details">
-          {#if post.colors > 2}
-            <div class="numColors">2 - {post.colors} {strings.colors}</div>
-          {:else}
-            <div class="numColors">{post.colors} {strings.colors}</div>
-          {/if}
-          <div class="justify-self-end" title={strings.updateDate}>
-            {dayjs().to(dayjs(post.creationDate), false)}
-          </div>
+</div>
+<div class="samples">
+  {#each newPosts as post}
+    <div class="outerPattern">
+      <a
+        rel="prefetch"
+        href="{post.slug}/"
+        class="pattern"
+        style={svgPattern(post.width, post.height, post.path, post.mode)}
+      >
+        <span>{post.title}</span>
+      </a>
+      <div class="details">
+        {#if post.colors > 2}
+          <div class="numColors">2 - {post.colors} {strings.colors}</div>
+        {:else}
+          <div class="numColors">{post.colors} {strings.colors}</div>
+        {/if}
+        <div class="justify-self-end" title={strings.updateDate}>
+          {dayjs().to(dayjs(post.creationDate), false)}
         </div>
       </div>
-    {/each}
-  </div>
+    </div>
+  {/each}
+</div>
 </div>
 
 <Footer />
 
 <style>
-  .patternsList {
-    color: #1a202c;
-    background-color: var(--pattern-bg);
-    padding: 2em;
-  }
+.patternsList {
+  color: #1a202c;
+  background-color: var(--pattern-bg);
+  padding: 2em;
+}
 
-  a {
-    display: flex;
-    height: 100%;
-    align-content: center;
-    justify-content: center;
-    text-decoration: none;
-  }
+a {
+  display: flex;
+  height: 100%;
+  align-content: center;
+  justify-content: center;
+  text-decoration: none;
+}
 
-  a span {
-    color: var(--accent-text-color);
-    background-color: var(--secondary-text-color);
-    align-self: center;
-    border-radius: var(--border-radius);
-    padding: 0.25em 0.625em;
-  }
+a span {
+  color: var(--accent-text-color);
+  background-color: var(--secondary-text-color);
+  align-self: center;
+  border-radius: var(--border-radius);
+  padding: 0.25em 0.625em;
+}
 
-  .samples {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2em;
-    align-items: center;
-    color: var(--secondary-text-color);
-    margin-top: 1em;
-  }
-  .outerPattern {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border-radius: var(--border-radius);
-    overflow: hidden;
-  }
+.samples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2em;
+  align-items: center;
+  color: var(--secondary-text-color);
+  margin-top: 1em;
+}
+.outerPattern {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
 
-  .pattern {
-    width: 100%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    margin: 0 auto;
-  }
+.pattern {
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin: 0 auto;
+}
 
-  .pattern:before {
-    content: "";
-    display: block;
-    height: 0;
-    width: 0;
-    padding-bottom: calc(10 / 16 * 100%);
-  }
-  h1 {
-    font-size: 2em;
-    text-align: center;
-    font-weight: 600;
-    padding: 0.5em;
-    color: var(--secondary-text-color);
-    margin-bottom: 0.5em;
-    margin-top: 0;
-  }
-  p {
-    color: var(--secondary-text-color);
-    padding-bottom: 1.5em;
-    padding-top: 0.5em;
-    text-align: center;
-  }
-  .stats {
-    color: var(--secondary-text-color);
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: auto auto auto auto;
-    column-gap: 2em;
-    row-gap: 0.5em;
-    place-content: center;
-  }
+.pattern:before {
+  content: "";
+  display: block;
+  height: 0;
+  width: 0;
+  padding-bottom: calc(10 / 16 * 100%);
+}
+h1 {
+  font-size: 2em;
+  text-align: center;
+  font-weight: 600;
+  padding: 0.5em;
+  color: var(--secondary-text-color);
+  margin-bottom: 0.5em;
+  margin-top: 0;
+}
+p {
+  color: var(--secondary-text-color);
+  padding-bottom: 1.5em;
+  padding-top: 0.5em;
+  text-align: center;
+}
+.stats {
+  color: var(--secondary-text-color);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  column-gap: 2em;
+  row-gap: 0.5em;
+  place-content: center;
+}
 
+.outerGrid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: auto 1fr auto;
+  place-items: center;
+  gap: 1em;
+  color: var(--secondary-text-color);
+  padding: 1em 0;
+  background-color: var(--pattern-bg);
+}
+@media (min-width: 640px) {
   .outerGrid {
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-columns: auto 1fr auto;
-    place-items: center;
-    gap: 1em;
-    color: var(--secondary-text-color);
-    padding: 1em 0;
-    background-color: var(--pattern-bg);
+    position: sticky;
+    top: 2.86em;
+    z-index: 1;
+    margin: 0 -2em;
+    padding: 1em 2em;
   }
-  @media (min-width: 640px) {
-    .outerGrid {
-      position: sticky;
-      top: 2.86em;
-      z-index: 1;
-      margin: 0 -2em;
-      padding: 1em 2em;
-    }
-  }
-  .filterGrid {
-    place-content: start;
-    place-items: center;
-    justify-self: start;
-    gap: 1em;
-    order: -1;
+}
+.filterGrid {
+  place-content: start;
+  place-items: center;
+  justify-self: start;
+  gap: 1em;
+  order: -1;
+}
+.sortGrid {
+  place-items: start;
+  align-items: center;
+  justify-self: end;
+  order: 1;
+  gap: 1em;
+}
+.sortInner {
+  place-items: start;
+  flex-wrap: nowrap;
+  margin: 0 -0.5em;
+}
+.sortInner button {
+  margin: 0 0.5em;
+}
+
+button {
+  border: 0.125em solid var(--accent-text);
+  color: var(--accent-text);
+  background-color: transparent;
+}
+
+.details {
+  background-color: var(--svg-bg);
+  color: var(--gray-text);
+  font-size: 0.9em;
+  display: grid;
+  grid-auto-flow: column;
+  gap: 1em;
+  padding: 0.5em;
+  line-height: 1;
+}
+
+.searchBox {
+  padding: 0.6rem 0.75rem;
+  border: 0.0625em solid var(--gray-text);
+  background-color: var(--card-bg);
+  color: var(--gray-text);
+  border-radius: var(--border-radius);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem;
+  width: 100%;
+}
+.searchBox:focus-within {
+  outline: 1px solid transparent;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px var(--accent-hover);
+}
+
+.searchBox .icon {
+  width: 1em;
+  height: 1em;
+}
+
+.search {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  font-size: 0.85em;
+  outline: 0;
+  background-color: transparent;
+  width: 100%;
+  padding: 0;
+  color: var(--gray-text);
+  line-height: normal;
+}
+
+.search:focus {
+  outline: 1px solid transparent;
+  outline-offset: 1px;
+  /* box-shadow: 0 0 0 3px var(--accent-hover); */
+}
+
+@media (max-width: 1024px) {
+  .outerGrid {
+    grid-auto-flow: row;
+    grid-template-columns: auto;
   }
   .sortGrid {
-    place-items: start;
-    align-items: center;
-    justify-self: end;
-    order: 1;
-    gap: 1em;
+    justify-self: start;
+  }
+  .filterGrid {
+    order: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  h1 {
+    text-align: left;
+    padding: 0.5em 0;
+  }
+  p {
+    text-align: left;
+  }
+  .stats {
+    place-content: start;
+  }
+  .samples {
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .patternsList {
+    padding: 1.5em;
+  }
+  .stats {
+    grid-template-columns: auto auto;
+  }
+}
+@media (max-width: 440px) {
+  .outerGrid {
+    padding-bottom: 1em;
+  }
+  .sortGrid {
+    align-items: flex-start;
+  }
+  .sortGrid span {
+    margin-top: 0.5em;
+    margin-right: 1em;
   }
   .sortInner {
     place-items: start;
-    flex-wrap: nowrap;
-    margin: 0 -0.5em;
+    flex-wrap: wrap;
   }
   .sortInner button {
-    margin: 0 0.5em;
+    margin-left: 0;
+    margin-right: 1em;
+    margin-bottom: 1em;
   }
+  .sortInner button:last-child {
+    margin-right: 0;
+  }
+}
 
-  button {
-    border: 0.125em solid var(--accent-text);
-    color: var(--accent-text);
-    background-color: transparent;
+@media (max-width: 408px) {
+  .patternsList {
+    padding: 1em;
   }
-
-  .details {
-    background-color: var(--svg-bg);
-    color: var(--gray-text);
-    font-size: 0.9em;
-    display: grid;
-    grid-auto-flow: column;
-    gap: 1em;
-    padding: 0.5em;
-    line-height: 1;
+  .stats {
+    grid-template-columns: auto;
   }
-
-  .searchBox {
-    padding: 0.6rem 0.75rem;
-    border: 0.0625em solid var(--gray-text);
-    background-color: var(--card-bg);
-    color: var(--gray-text);
-    border-radius: var(--border-radius);
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.5rem;
-    width: 100%;
-  }
-  .searchBox:focus-within {
-    outline: 1px solid transparent;
-    outline-offset: 1px;
-    box-shadow: 0 0 0 3px var(--accent-hover);
-  }
-
-  .searchBox .icon {
-    width: 1em;
-    height: 1em;
-  }
-
-  .search {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    font-size: 0.85em;
-    outline: 0;
-    background-color: transparent;
-    width: 100%;
-    padding: 0;
-    color: var(--gray-text);
-    line-height: normal;
-  }
-
-  .search:focus {
-    outline: 1px solid transparent;
-    outline-offset: 1px;
-    /* box-shadow: 0 0 0 3px var(--accent-hover); */
-  }
-
-  @media (max-width: 1024px) {
-    .outerGrid {
-      grid-auto-flow: row;
-      grid-template-columns: auto;
-    }
-    .sortGrid {
-      justify-self: start;
-    }
-    .filterGrid {
-      order: 0;
-    }
-  }
-
-  @media (max-width: 768px) {
-    h1 {
-      text-align: left;
-      padding: 0.5em 0;
-    }
-    p {
-      text-align: left;
-    }
-    .stats {
-      place-content: start;
-    }
-    .samples {
-      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-    }
-  }
-
-  @media (max-width: 640px) {
-    .patternsList {
-      padding: 1.5em;
-    }
-    .stats {
-      grid-template-columns: auto auto;
-    }
-  }
-  @media (max-width: 440px) {
-    .outerGrid {
-      padding-bottom: 1em;
-    }
-    .sortGrid {
-      align-items: flex-start;
-    }
-    .sortGrid span {
-      margin-top: 0.5em;
-      margin-right: 1em;
-    }
-    .sortInner {
-      place-items: start;
-      flex-wrap: wrap;
-    }
-    .sortInner button {
-      margin-left: 0;
-      margin-right: 1em;
-      margin-bottom: 1em;
-    }
-    .sortInner button:last-child {
-      margin-right: 0;
-    }
-  }
-
-  @media (max-width: 408px) {
-    .patternsList {
-      padding: 1em;
-    }
-    .stats {
-      grid-template-columns: auto;
-    }
-  }
-  /* .subscribe-waitlist {
-    padding: 0 0.5rem;
-    background-color: var(--secondary-color);
-    border-radius: var(--border-radius);
-    font-size: 0.85em;
-    grid-auto-flow: row;
-    margin: -1em auto 2em;
-    width: 716px;
-  }
-  .subscribe-waitlist span {
-    padding: 1em 8px 0.5em;
-    font-weight: 600;
-  }
-
-  @media (max-width: 804px) {
-    .subscribe-waitlist {
-      width: auto;
-    }
-    .subscribe-waitlist span {
-      padding: 1em 8px 0.75em;
-    }
-  } */
+}
 </style>
