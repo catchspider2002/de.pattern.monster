@@ -1,13 +1,10 @@
 <script context="module">
   export function preload({ params, query }) {
-    return (
-      this.fetch(`index.json`)
-        .then((r) => r.json())
-        // .then((r, postMode) => r.filter(pattern => pattern.mode === postMode))
-        .then((ptrns) => {
-          return { ptrns };
-        })
-    );
+    return this.fetch(`index.json`)
+      .then((r) => r.json())
+      .then((ptrns) => {
+        return { ptrns };
+      });
   }
 </script>
 
@@ -16,6 +13,7 @@
   import AutoComplete from "../components/SimpleAutocomplete.svelte";
 
   import Footer from "../components/Footer.svelte";
+  import StickyFooter from "../components/StickyFooter.svelte";
   import Constants from "./_constants.js";
   import Values from "./_values.js";
   import lang from "./_lang.js";
@@ -24,18 +22,12 @@
   import dayjs from "dayjs";
   import relativeTime from "dayjs/plugin/relativeTime";
 
-  let newPosts; // = posts;
-
-  // let count_value;
-  // themeStore.subscribe(value => {
-  //   count_value = value;
-  //   // console.log("store Theme: " + value);
-  // });
+  let newPosts;
 
   export let ptrns;
   let patternsCount = ptrns.length;
   let count = 0;
-  import { onMount, afterUpdate, onDestroy } from "svelte";
+  import { onMount, afterUpdate } from "svelte";
   
   export let posts =  [
     {title: 'Wellen - 1', slug: 'waves-1', mode: 'stroke', colors: 5, maxStroke: 6.5, maxScale: 16, maxSpacing: [0, 10], width: 120, height: 80, vHeight: 20, tags: ['waves','curves','wellen'], path: "<path d='M-50.129 12.685C-33.346 12.358-16.786 4.918 0 5c16.787.082 43.213 10 60 10s43.213-9.918 60-10c16.786-.082 33.346 7.358 50.129 7.685'/>~<path d='M-50.129 32.685C-33.346 32.358-16.786 24.918 0 25c16.787.082 43.213 10 60 10s43.213-9.918 60-10c16.786-.082 33.346 7.358 50.129 7.685'/>~<path d='M-50.129 52.685C-33.346 52.358-16.786 44.918 0 45c16.787.082 43.213 10 60 10s43.213-9.918 60-10c16.786-.082 33.346 7.358 50.129 7.685'/>~<path d='M-50.129 72.685C-33.346 72.358-16.786 64.918 0 65c16.787.082 43.213 10 60 10s43.213-9.918 60-10c16.786-.082 33.346 7.358 50.129 7.685'/>", creationDate: '13 Nov 2020'},
@@ -65,8 +57,7 @@ import "dayjs/locale/de";
 dayjs.locale("de");
 dayjs.extend(relativeTime);
 
-let searchBar;
-let w;
+let searchBar, w;
 $: placeholderSearch =
   w > 640
     ? strings.searchPattern + " (" + strings.pressFocus + ")"
@@ -179,97 +170,28 @@ let page = "index";
 let { title, url, keywords, desc, image, versions } =
   Constants.pageDetails(page);
 
-let lightColors = [
-  "hsla(0,0%,100%,1)",
-  "hsla(258.5,59.4%,59.4%,1)",
-  "hsla(339.6,82.2%,51.6%,1)",
-  "hsla(198.7,97.6%,48.4%,1)",
-  "hsla(47,80.9%,61%,1)",
-];
-let darkColors = [
-  "hsla(240,6.7%,17.6%,1)",
-  "hsla(47,80.9%,61%,1)",
-  "hsla(4.1,89.6%,58.4%,1)",
-  "hsla(186.8,100%,41.6%,1)",
-  "hsla(258.5,59.4%,59.4%,1)",
-];
-
-$: colors = $themeStore === "light" ? lightColors : darkColors;
+$: colors =
+  $themeStore === "light" ? Constants.lightColors : Constants.darkColors;
 
 $: svgPattern = (width, height, path, mode) => {
   let strokeGroup = "";
 
   for (let i = 0; i < path.split("~").length; i++) {
-    let strokeFill =
-      "stroke-width='1' stroke='" + colors[i + 1] + "' fill='none'";
-    if (mode === "fill")
-      strokeFill = "stroke='none' fill='" + colors[i + 1] + "'";
+    let strokeFill = `stroke-width='1' stroke='${colors[i + 1]}' fill='none'`;
+    if (mode === "fill") strokeFill = `stroke='none' fill='${colors[i + 1]}'`;
 
-    strokeGroup += path.split("~")[i].replace("/>", " " + strokeFill + "/>");
+    strokeGroup += path.split("~")[i].replace("/>", ` ${strokeFill}/>`);
   }
 
   let patternNew =
-    "<svg width='100%' height='100%' xmlns='http://www.w3.org/2000/svg'><defs>" +
-    "<pattern id='a' patternUnits='userSpaceOnUse' width='" +
-    width +
-    "' height='" +
-    height +
-    "'><rect x='0' y='0' width='" +
-    width +
-    "' height='" +
-    height +
-    "' fill='" +
-    colors[0] +
-    "'/>" +
-    strokeGroup +
-    "</pattern></defs><rect width='100%' height='100%' fill='url(#a)'/></svg>";
+    `<svg width='100%' height='100%' xmlns='http://www.w3.org/2000/svg'><defs><pattern id='a' patternUnits='userSpaceOnUse' width='${width}' height='${height}'>` +
+    `<rect x='0' y='0' width='${width}' height='${height}' fill='${colors[0]}'/>${strokeGroup}</pattern></defs><rect width='100%' height='100%' fill='url(#a)'/></svg>`;
   return (
     'background-image: url("data:image/svg+xml,' +
     patternNew.replace("#", "%23") +
     '")'
   );
 };
-
-// const api = "https://hn.algolia.com/api/v1/search_by_date?tags=story";
-
-// let page = 1;
-// // let list = [];
-// let newsType = "story";
-// let infiniteId = 1;
-
-// function infiniteHandler({ detail: { loaded, complete } }) {
-// 	fetch(`${api}&page=${page}&tags=${newsType}`)
-// 			.then(response => response.json())
-// 			.then(data => {
-// 				if (data.hits.length) {
-// 					page += 1;
-// 					list = [...list, ...data.hits];
-// 					loaded();
-// 				} else {
-// 					complete();
-// 				}
-// 			});
-// }
-
-// function infiniteHandler({ detail: { loaded, complete } }) {
-//   fetch(`index.json`)
-//     .then((r) => r.json())
-//     .then((data) => {
-//       if (data.length) {
-//         page += 1;
-//         newPosts = [...newPosts, ...data];
-//         loaded();
-//       } else {
-//         complete();
-//       }
-//     });
-// }
-
-// function changeType() {
-//   page = 1;
-//   list = [];
-//   infiniteId += 50;
-// }
 
 let stats = [
   {
@@ -414,6 +336,7 @@ let stats = [
 </div>
 
 <Footer />
+<StickyFooter />
 
 <style>
 .patternsList {
@@ -421,7 +344,6 @@ let stats = [
   background-color: var(--pattern-bg);
   padding: 2em;
 }
-
 a {
   display: flex;
   height: 100%;
@@ -429,7 +351,6 @@ a {
   justify-content: center;
   text-decoration: none;
 }
-
 a span {
   color: var(--accent-text-color);
   background-color: var(--secondary-text-color);
@@ -437,7 +358,6 @@ a span {
   border-radius: var(--border-radius);
   padding: 0.25em 0.625em;
 }
-
 .samples {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -452,7 +372,6 @@ a span {
   border-radius: var(--border-radius);
   overflow: hidden;
 }
-
 .pattern {
   width: 100%;
   cursor: pointer;
@@ -460,7 +379,6 @@ a span {
   align-items: center;
   margin: 0 auto;
 }
-
 .pattern:before {
   content: "";
   display: block;
@@ -492,7 +410,6 @@ p {
   row-gap: 0.5em;
   place-content: center;
 }
-
 .outerGrid {
   display: grid;
   grid-auto-flow: column;
@@ -534,13 +451,11 @@ p {
 .sortInner button {
   margin: 0 0.5em;
 }
-
 button {
   border: 0.125em solid var(--accent-text);
   color: var(--accent-text);
   background-color: transparent;
 }
-
 .details {
   background-color: var(--svg-bg);
   color: var(--gray-text);
@@ -551,7 +466,6 @@ button {
   padding: 0.5em;
   line-height: 1;
 }
-
 .searchBox {
   padding: 0.6rem 0.75rem;
   border: 0.0625em solid var(--gray-text);
@@ -569,12 +483,10 @@ button {
   outline-offset: 1px;
   box-shadow: 0 0 0 3px var(--accent-hover);
 }
-
 .searchBox .icon {
   width: 1em;
   height: 1em;
 }
-
 .search {
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -587,13 +499,10 @@ button {
   color: var(--gray-text);
   line-height: normal;
 }
-
 .search:focus {
   outline: 1px solid transparent;
   outline-offset: 1px;
-  /* box-shadow: 0 0 0 3px var(--accent-hover); */
 }
-
 @media (max-width: 1024px) {
   .outerGrid {
     grid-auto-flow: row;
@@ -606,7 +515,6 @@ button {
     order: 0;
   }
 }
-
 @media (max-width: 768px) {
   h1 {
     text-align: left;
@@ -622,7 +530,6 @@ button {
     grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
   }
 }
-
 @media (max-width: 640px) {
   .patternsList {
     padding: 1.5em;
@@ -655,7 +562,6 @@ button {
     margin-right: 0;
   }
 }
-
 @media (max-width: 408px) {
   .patternsList {
     padding: 1em;
